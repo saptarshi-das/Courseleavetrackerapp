@@ -9,6 +9,7 @@ import { LoginPage } from './components/LoginPage';
 import { UserDropdown } from './components/UserDropdown';
 import { Navigation } from './components/Navigation';
 import { SettingsPage } from './components/SettingsPage';
+import { CalendarPage } from './components/CalendarPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DatabaseService, createDatabaseService, Course as DBCourse } from './firebase/database';
 
@@ -31,7 +32,7 @@ function AppContent() {
     return saved === 'dark';
   });
 
-  const [activeSection, setActiveSection] = useState<'home' | 'settings'>('home');
+  const [activeSection, setActiveSection] = useState<'home' | 'calendar' | 'settings'>('home');
 
   // Initialize database service when user logs in
   useEffect(() => {
@@ -242,18 +243,20 @@ function AppContent() {
                 isDark={isDark}
               />
             </>
+          ) : activeSection === 'calendar' ? (
+            <CalendarPage isDark={isDark} />
           ) : (
             <SettingsPage isDark={isDark} />
           )}
         </main>
-
-        {/* Navigation */}
-        <Navigation
-          isDark={isDark}
-          activeSection={activeSection}
-          onSectionChange={setActiveSection}
-        />
       </div>
+
+      {/* Navigation - Outside container to float freely */}
+      <Navigation
+        isDark={isDark}
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+      />
     </div>
   );
 }

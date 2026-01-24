@@ -7,6 +7,8 @@ import { PWAPrompt } from './components/PWAPrompt';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { LoginPage } from './components/LoginPage';
 import { UserDropdown } from './components/UserDropdown';
+import { Navigation } from './components/Navigation';
+import { SettingsPage } from './components/SettingsPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DatabaseService, createDatabaseService, Course as DBCourse } from './firebase/database';
 
@@ -28,6 +30,8 @@ function AppContent() {
     const saved = localStorage.getItem('theme');
     return saved === 'dark';
   });
+
+  const [activeSection, setActiveSection] = useState<'home' | 'settings'>('home');
 
   // Initialize database service when user logs in
   useEffect(() => {
@@ -203,39 +207,52 @@ function AppContent() {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 space-y-4 pb-6">
+        <main className="flex-1 p-4 space-y-4 pb-24">
           {/* PWA Install Prompt */}
           <PWAPrompt isDark={isDark} />
 
-          {/* Greeting */}
-          <div className="mb-2">
-            <h2
-              className={`text-2xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}
-              style={{
-                fontWeight: 500,
-                textShadow: isDark
-                  ? '0 0 1px rgba(255,255,255,0.5)'
-                  : '0 0 1px rgba(0,0,0,0.3)'
-              }}
-            >
-              Hi, {firstName}!
-            </h2>
-          </div>
+          {activeSection === 'home' ? (
+            <>
+              {/* Greeting */}
+              <div className="mb-2">
+                <h2
+                  className={`text-2xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}
+                  style={{
+                    fontWeight: 500,
+                    textShadow: isDark
+                      ? '0 0 1px rgba(255,255,255,0.5)'
+                      : '0 0 1px rgba(0,0,0,0.3)'
+                  }}
+                >
+                  Hi, {firstName}!
+                </h2>
+              </div>
 
-          {/* Dashboard */}
-          <Dashboard courses={courses} isDark={isDark} />
+              {/* Dashboard */}
+              <Dashboard courses={courses} isDark={isDark} />
 
-          {/* Add Course Button */}
-          <AddCourseButton onAddCourse={addCourse} isDark={isDark} />
+              {/* Add Course Button */}
+              <AddCourseButton onAddCourse={addCourse} isDark={isDark} />
 
-          {/* Course List */}
-          <CourseList
-            courses={courses}
-            onUpdateLeaves={updateLeaves}
-            onDeleteCourse={deleteCourse}
-            isDark={isDark}
-          />
+              {/* Course List */}
+              <CourseList
+                courses={courses}
+                onUpdateLeaves={updateLeaves}
+                onDeleteCourse={deleteCourse}
+                isDark={isDark}
+              />
+            </>
+          ) : (
+            <SettingsPage isDark={isDark} />
+          )}
         </main>
+
+        {/* Navigation */}
+        <Navigation
+          isDark={isDark}
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+        />
       </div>
     </div>
   );

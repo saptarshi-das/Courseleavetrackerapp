@@ -2087,3 +2087,15 @@ html {
 .animate-slideDown {
   animation: slideDown 0.3s ease-out;
 }
+
+/* Navigation text slide-in animation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

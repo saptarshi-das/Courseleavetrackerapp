@@ -1,3 +1,4 @@
 # Firebase Environment Variables
 .env
 .env.local
+node_modules/

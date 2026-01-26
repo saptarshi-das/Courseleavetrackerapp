@@ -1,0 +1,83 @@
+[debug] [2026-01-25T18:18:29.376Z] ----------------------------------------------------------------------
+[debug] [2026-01-25T18:18:29.378Z] Command:       /usr/local/bin/node /Users/saptarshi/.npm/_npx/ba4f1959e38407b5/node_modules/.bin/firebase init dataconnect --project margin-e64b8
+[debug] [2026-01-25T18:18:29.378Z] CLI Version:   15.4.0
+[debug] [2026-01-25T18:18:29.378Z] Platform:      darwin
+[debug] [2026-01-25T18:18:29.379Z] Node Version:  v22.17.1
+[debug] [2026-01-25T18:18:29.379Z] Time:          Sun Jan 25 2026 23:48:29 GMT+0530 (India Standard Time)
+[debug] [2026-01-25T18:18:29.379Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-01-25T18:18:29.380Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  /Users/saptarshi/Desktop/Coding Projects/Margin/Margin-app
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2026-01-25T18:18:30.655Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-25T18:18:30.656Z] > authorizing via signed-in user (saptarshidas557@gmail.com)
+[debug] [2026-01-25T18:18:30.656Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:30.656Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:30.656Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/margin-e64b8 [none]
+[debug] [2026-01-25T18:18:31.468Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/margin-e64b8 200
+[debug] [2026-01-25T18:18:31.469Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/margin-e64b8 {"projectId":"margin-e64b8","projectNumber":"531122372814","displayName":"Margin","name":"projects/margin-e64b8","resources":{"hostingSite":"margin-e64b8"},"state":"ACTIVE","etag":"1_38f41bcd-8135-4348-beb6-bdb951a36b8f"}
+[info] i  Using project margin-e64b8 (Margin) . 
+[info] 
+=== Dataconnect Setup
+[info] i  dataconnect: ensuring required API firebasedataconnect.googleapis.com is enabled... 
+[debug] [2026-01-25T18:18:31.482Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:31.482Z] Checked if tokens are valid: true, expires at: 1769368594352
+[info] i  dataconnect: ensuring required API sqladmin.googleapis.com is enabled... 
+[debug] [2026-01-25T18:18:31.483Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:31.483Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:31.483Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/firebasedataconnect.googleapis.com [none]
+[debug] [2026-01-25T18:18:31.483Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/margin-e64b8
+[debug] [2026-01-25T18:18:31.484Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/sqladmin.googleapis.com [none]
+[debug] [2026-01-25T18:18:31.484Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/sqladmin.googleapis.com x-goog-quota-user=projects/margin-e64b8
+[debug] [2026-01-25T18:18:32.007Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-01-25T18:18:32.007Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-01-25T18:18:33.608Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/firebasedataconnect.googleapis.com 200
+[debug] [2026-01-25T18:18:33.608Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/firebasedataconnect.googleapis.com [omitted]
+[warn] ⚠  dataconnect: missing required API firebasedataconnect.googleapis.com. Enabling now... 
+[debug] [2026-01-25T18:18:33.610Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:33.610Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:33.610Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/firebasedataconnect.googleapis.com:enable [none]
+[debug] [2026-01-25T18:18:33.610Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/firebasedataconnect.googleapis.com:enable x-goog-quota-user=projects/margin-e64b8
+[debug] [2026-01-25T18:18:33.879Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/sqladmin.googleapis.com 200
+[debug] [2026-01-25T18:18:33.879Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/sqladmin.googleapis.com [omitted]
+[warn] ⚠  dataconnect: missing required API sqladmin.googleapis.com. Enabling now... 
+[debug] [2026-01-25T18:18:33.880Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:33.880Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:33.880Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/sqladmin.googleapis.com:enable [none]
+[debug] [2026-01-25T18:18:33.880Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/sqladmin.googleapis.com:enable x-goog-quota-user=projects/margin-e64b8
+[debug] [2026-01-25T18:18:35.423Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/firebasedataconnect.googleapis.com:enable 200
+[debug] [2026-01-25T18:18:35.424Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/firebasedataconnect.googleapis.com:enable [omitted]
+[debug] [2026-01-25T18:18:35.697Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/sqladmin.googleapis.com:enable 200
+[debug] [2026-01-25T18:18:35.697Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/sqladmin.googleapis.com:enable [omitted]
+[debug] [2026-01-25T18:18:45.713Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:45.714Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:45.714Z] >>> [apiv2][query] GET https://firebasedataconnect.googleapis.com/v1/projects/margin-e64b8/locations/-/services [none]
+[debug] [2026-01-25T18:18:48.140Z] <<< [apiv2][status] GET https://firebasedataconnect.googleapis.com/v1/projects/margin-e64b8/locations/-/services 200
+[debug] [2026-01-25T18:18:48.140Z] <<< [apiv2][body] GET https://firebasedataconnect.googleapis.com/v1/projects/margin-e64b8/locations/-/services {}
+[info] i  Learn more about Gemini in Firebase and how it uses your data: https://firebase.google.com/docs/gemini-in-firebase#how-gemini-in-firebase-uses-your-data 
+[info] i  : ensuring required API cloudaicompanion.googleapis.com is enabled... 
+[debug] [2026-01-25T18:18:57.953Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:57.953Z] Checked if tokens are valid: true, expires at: 1769368594352
+[debug] [2026-01-25T18:18:57.953Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/cloudaicompanion.googleapis.com [none]
+[debug] [2026-01-25T18:18:57.953Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/cloudaicompanion.googleapis.com x-goog-quota-user=projects/margin-e64b8
+[debug] [2026-01-25T18:18:59.846Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/cloudaicompanion.googleapis.com 200
+[debug] [2026-01-25T18:18:59.846Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/margin-e64b8/services/cloudaicompanion.googleapis.com [omitted]
+[info] ✔  : required API cloudaicompanion.googleapis.com is enabled 
+[debug] [2026-01-25T18:19:10.486Z] Error: read EIO
+    at TTY.onStreamRead (node:internal/stream_base_commons:216:20)
+    at TTY.callbackTrampoline (node:internal/async_hooks:130:17)

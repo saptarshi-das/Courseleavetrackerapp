@@ -1,77 +1,88 @@
-import { Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { useState } from 'react';
 
 interface CalendarPageProps {
     isDark: boolean;
 }
 
+type CalendarView = 'month' | 'week';
+
 export function CalendarPage({ isDark }: CalendarPageProps) {
+    const [currentDate] = useState(new Date());
+    const [view, setView] = useState<CalendarView>('week');
+
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+
+    const baseCalendarUrl = "https://calendar.google.com/calendar/embed?height=600&wkst=1&ctz=Asia%2FKolkata&showPrint=0&showTitle=0&showTz=0&src=c2FwdGFyc2hpLmRhc2kyMUBpaW1yYW5jaGkuYWMuaW4&src=Y18xOWY1ZTNhOWJjZDU2ZTU4YjkyYTFhNmJiMDZiNzM1NTgxOGZlMjIzNDk0MjA0OGE0NzkzMjUzNjIxYmQxODZkQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20&src=Y18yYjU4MTk3M2E4Yzk4ODdlMjM2YTk2MGEyZTJkMWZhMzdjOWNiMTQ5ZDM5MmI4MDBjNWQ3MjIwM2Q4MDViMDMxQGdyb3VwLmNhbGVuZGFyLmdvb2dsZS5jb20&src=ZW4uaW5kaWFuI2hvbGlkYXlAZ3JvdXAudi5jYWxlbmRhci5nb29nbGUuY29t&src=Y19jbGFzc3Jvb20xNTE5MzAzOUBncm91cC5jYWxlbmRhci5nb29nbGUuY29t&color=%23039be5&color=%237cb342&color=%23795548&color=%230b8043&color=%23202124";
+
+    const calendarUrl = view === 'week'
+        ? `${baseCalendarUrl}&mode=WEEK`
+        : `${baseCalendarUrl}&mode=MONTH`;
+
     return (
-        <div className="space-y-4">
-            {/* Page Title */}
-            <h2
-                className={`text-2xl font-black mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}
-                style={{
-                    fontWeight: 500,
-                    textShadow: isDark
-                        ? '0 0 1px rgba(255,255,255,0.5)'
-                        : '0 0 1px rgba(0,0,0,0.3)'
-                }}
-            >
-                Calendar
-            </h2>
+        <div className="pb-4">
+            {/* Header */}
+            <div className="mb-4">
+                <h2 className={`text-2xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                </h2>
 
-            {/* Coming Soon Card */}
-            <div
-                className={`rounded-2xl p-8 shadow-lg text-center ${isDark
-                        ? 'bg-gray-800 border border-gray-700'
-                        : 'bg-white border border-gray-200'
-                    }`}
-            >
-                <div className="flex justify-center mb-4">
-                    <div className={`p-4 rounded-full ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'
-                        }`}>
-                        <CalendarIcon className={`w-12 h-12 ${isDark ? 'text-indigo-400' : 'text-indigo-600'
-                            }`} />
+                {/* View Toggle */}
+                <div className="flex items-center gap-2">
+                    <div className={`flex rounded-lg overflow-hidden ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                        <button
+                            onClick={() => setView('month')}
+                            className={`px-4 py-2 text-sm font-medium transition-colors ${view === 'month'
+                                    ? isDark ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'
+                                    : isDark ? 'text-gray-300' : 'text-gray-700'
+                                }`}
+                        >
+                            Month
+                        </button>
+                        <button
+                            onClick={() => setView('week')}
+                            className={`px-4 py-2 text-sm font-medium transition-colors ${view === 'week'
+                                    ? isDark ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'
+                                    : isDark ? 'text-gray-300' : 'text-gray-700'
+                                }`}
+                        >
+                            Week
+                        </button>
                     </div>
-                </div>
 
-                <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'
-                    }`}>
-                    Calendar Coming Soon
-                </h3>
-
-                <p className={`text-sm mb-6 ${isDark ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                    View your class schedule and manage your attendance calendar here.
-                </p>
-
-                {/* Features List */}
-                <div className={`mt-6 pt-6 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'
-                    }`}>
-                    <p className={`text-xs font-semibold mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'
-                        }`}>
-                        Upcoming Features:
-                    </p>
-
-                    <div className="space-y-2">
-                        <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
-                            <Clock className="w-4 h-4" />
-                            <span>Weekly class schedule view</span>
-                        </div>
-                        <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
-                            <CalendarIcon className="w-4 h-4" />
-                            <span>Mark attended classes</span>
-                        </div>
-                        <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'
-                            }`}>
-                            <CalendarIcon className="w-4 h-4" />
-                            <span>Monthly attendance overview</span>
-                        </div>
-                    </div>
+                    <a
+                        href={calendarUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`text-xs ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-700'} underline`}
+                    >
+                        Open in new tab
+                    </a>
                 </div>
             </div>
+
+            {/* Google Calendar Iframe */}
+            <div
+                className={`rounded-xl overflow-hidden shadow-lg ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+                style={{ position: 'relative' }}
+            >
+                <iframe
+                    key={view} // Force re-render when view changes
+                    src={calendarUrl}
+                    style={{
+                        border: 'none',
+                        width: '100%',
+                        height: 'calc(100vh - 340px)',
+                        minHeight: '600px',
+                        display: 'block',
+                    }}
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                    title="Google Calendar"
+                />
+            </div>
+
+            {/* Bottom Spacer */}
+            <div style={{ height: '120px' }} />
         </div>
     );
 }

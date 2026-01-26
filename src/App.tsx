@@ -190,17 +190,6 @@ function AppContent() {
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {/* Dark Mode Toggle */}
-              <button
-                onClick={() => setIsDark(!isDark)}
-                className={`p-3 rounded-full transition-all active:scale-95 ${isDark
-                  ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400'
-                  : 'bg-white hover:bg-gray-100 text-gray-700'
-                  } shadow-md`}
-              >
-                {isDark ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
-
               {/* User Dropdown - Button in header, menu renders separately */}
               <UserDropdown isDark={isDark} />
             </div>
@@ -208,7 +197,7 @@ function AppContent() {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 space-y-4 pb-24">
+        <main className="flex-1 p-4 space-y-4 pb-40">
           {/* PWA Install Prompt */}
           <PWAPrompt isDark={isDark} />
 
@@ -246,7 +235,7 @@ function AppContent() {
           ) : activeSection === 'calendar' ? (
             <CalendarPage isDark={isDark} />
           ) : (
-            <SettingsPage isDark={isDark} />
+            <SettingsPage isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
           )}
         </main>
       </div>

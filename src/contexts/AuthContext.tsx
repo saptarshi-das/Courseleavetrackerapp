@@ -3,6 +3,8 @@ import {
     User,
     GoogleAuthProvider,
     signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     signOut as firebaseSignOut,
     onAuthStateChanged
 } from 'firebase/auth';
@@ -42,6 +44,44 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
 
     useEffect(() => {
+        // Handle redirect result from mobile sign-in
+        const handleRedirectResult = async () => {
+            try {
+                const result = await getRedirectResult(auth);
+                if (result) {
+                    console.log('✅ Redirect sign-in successful:', result.user.email);
+
+                    // Verify domain
+                    const email = result.user.email || '';
+                    const domain = email.split('@')[1];
+
+                    if (domain !== ALLOWED_DOMAIN) {
+                        await firebaseSignOut(auth);
+                        setError(`Only ${ALLOWED_DOMAIN} email addresses are allowed.`);
+                        return;
+                    }
+
+                    // Extract OAuth access token
+                    const credential = GoogleAuthProvider.credentialFromResult(result);
+                    if (credential?.accessToken) {
+                        console.log('✅ Access token captured from redirect');
+                        setGoogleAccessToken(credential.accessToken);
+                        localStorage.setItem('googleAccessToken', credential.accessToken);
+                    }
+                }
+            } catch (error: any) {
+                console.error('Redirect sign-in error:', error);
+                if (error.code === 'auth/unauthorized-domain') {
+                    setError('This domain is not authorized. Please contact support.');
+                } else {
+                    setError(error.message || 'Failed to sign in.');
+                }
+            }
+        };
+
+        // Check for redirect result on page load
+        handleRedirectResult();
+
         // If we already have a user from cache, validate their domain
         if (initialUser) {
             const email = initialUser.email || '';
@@ -96,6 +136,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const signInWithGoogle = async () => {
         try {
             setError(null);
+
+            // Detect mobile devices
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+            if (isMobile) {
+                // Use redirect flow for mobile (avoid popup issues)
+                console.log('📱 Mobile detected, using redirect flow');
+                await signInWithRedirect(auth, googleProvider);
+                // Note: This will redirect away from the page
+                // The result will be handled in useEffect with getRedirectResult
+                return;
+            }
+
+            // Use popup flow for desktop
+            console.log('💻 Desktop detected, using popup flow');
             const result = await signInWithPopup(auth, googleProvider);
 
             // Double-check domain after sign in
@@ -139,6 +194,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 setError('Sign in was cancelled.');
             } else if (err.code === 'auth/popup-blocked') {
                 setError('Pop-up was blocked. Please allow pop-ups for this site.');
+            } else if (err.code === 'auth/unauthorized-domain') {
+                setError('This domain is not authorized. Please add it to Firebase authorized domains.');
             } else {
                 setError(err.message || 'Failed to sign in with Google.');
             }

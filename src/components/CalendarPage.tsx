@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Button } from './ui/button';
+import { ExternalLink } from 'lucide-react';
 
 interface CalendarPageProps {
     isDark: boolean;
@@ -23,52 +25,70 @@ export function CalendarPage({ isDark }: CalendarPageProps) {
         <div className="pb-4">
             {/* Header */}
             <div className="mb-4">
-                <h2 className={`text-2xl font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                </h2>
-
-                {/* View Toggle */}
-                <div className="flex items-center gap-2">
-                    <div className={`flex rounded-lg overflow-hidden ${isDark ? 'bg-gray-700' : 'bg-gray-200'}`}>
-                        <button
-                            onClick={() => setView('month')}
-                            className={`px-4 py-2 text-sm font-medium transition-colors ${view === 'month'
-                                    ? isDark ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'
-                                    : isDark ? 'text-gray-300' : 'text-gray-700'
+                {/* View Toggle and Open Button */}
+                <div className="flex items-center justify-between">
+                    {/* Toggle Switch */}
+                    <div className="flex items-center">
+                        <div className={`flex p-1 rounded-lg ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-gray-100 border border-gray-200'}`}>
+                            <button
+                                onClick={() => setView('month')}
+                                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all flex-1 ${
+                                    view === 'month'
+                                        ? isDark 
+                                            ? 'bg-white text-gray-900 shadow-sm' 
+                                            : '!bg-gray-900 !text-white shadow-sm'
+                                        : isDark 
+                                            ? 'text-gray-400 hover:text-gray-300' 
+                                            : 'text-gray-600 hover:text-gray-900'
                                 }`}
-                        >
-                            Month
-                        </button>
-                        <button
-                            onClick={() => setView('week')}
-                            className={`px-4 py-2 text-sm font-medium transition-colors ${view === 'week'
-                                    ? isDark ? 'bg-gray-600 text-white' : 'bg-white text-gray-900'
-                                    : isDark ? 'text-gray-300' : 'text-gray-700'
+                            >
+                                Month
+                            </button>
+                            <button
+                                onClick={() => setView('week')}
+                                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all flex-1 ${
+                                    view === 'week'
+                                        ? isDark 
+                                            ? 'bg-white text-gray-900 shadow-sm' 
+                                            : '!bg-gray-900 !text-white shadow-sm'
+                                        : isDark 
+                                            ? 'text-gray-400 hover:text-gray-300' 
+                                            : 'text-gray-600 hover:text-gray-900'
                                 }`}
-                        >
-                            Week
-                        </button>
+                            >
+                                Week
+                            </button>
+                        </div>
                     </div>
 
-                    <a
-                        href={calendarUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`text-xs ${isDark ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-700'} underline`}
+                    {/* Open Calendar Button */}
+                    <Button
+                        variant={isDark ? "default" : "outline"}
+                        size="sm"
+                        className="gap-2"
+                        asChild
                     >
-                        Open in new tab
-                    </a>
+                        <a
+                            href={calendarUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <ExternalLink className="h-4 w-4" />
+                            Google Calendar
+                        </a>
+                    </Button>
                 </div>
             </div>
 
             {/* Google Calendar Iframe */}
             <div
-                className={`rounded-xl overflow-hidden shadow-lg ${isDark ? 'bg-gray-800' : 'bg-white'}`}
+                className="shadow-lg"
                 style={{ position: 'relative' }}
             >
                 <iframe
                     key={view} // Force re-render when view changes
                     src={calendarUrl}
+                    className="rounded-xl"
                     style={{
                         border: 'none',
                         width: '100%',

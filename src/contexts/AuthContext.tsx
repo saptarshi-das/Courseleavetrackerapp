@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import {
     User,
+    GoogleAuthProvider,
     signInWithPopup,
     signOut as firebaseSignOut,
     onAuthStateChanged
@@ -13,6 +14,7 @@ interface AuthContextType {
     signInWithGoogle: () => Promise<void>;
     signOut: () => Promise<void>;
     error: string | null;
+    googleAccessToken: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +39,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const [user, setUser] = useState<User | null>(initialUser);
     const [loading, setLoading] = useState(!initialUser); // Only show loading if no cached user
     const [error, setError] = useState<string | null>(null);
+    const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
 
     useEffect(() => {
         // If we already have a user from cache, validate their domain
@@ -76,6 +79,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return () => unsubscribe();
     }, []);
 
+    // Load stored access token from localStorage
+    useEffect(() => {
+        if (user) {
+            const storedToken = localStorage.getItem('googleAccessToken');
+            if (storedToken) {
+                setGoogleAccessToken(storedToken);
+            }
+        } else {
+            // Clear token when user signs out
+            setGoogleAccessToken(null);
+            localStorage.removeItem('googleAccessToken');
+        }
+    }, [user]);
+
     const signInWithGoogle = async () => {
         try {
             setError(null);
@@ -89,6 +106,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 await firebaseSignOut(auth);
                 throw new Error(`Only ${ALLOWED_DOMAIN} email addresses are allowed.`);
             }
+
+            // Extract OAuth access token for Google Calendar API
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            console.log('🔐 OAuth Credential:', credential);
+
+            if (credential?.accessToken) {
+                console.log('✅ Access token captured:', credential.accessToken.substring(0, 20) + '...');
+                setGoogleAccessToken(credential.accessToken);
+                // Store in localStorage for persistence across page reloads
+                localStorage.setItem('googleAccessToken', credential.accessToken);
+
+                // Decode token to verify scopes (for debugging)
+                try {
+                    const tokenParts = credential.accessToken.split('.');
+                    if (tokenParts.length > 1) {
+                        const payload = JSON.parse(atob(tokenParts[1]));
+                        console.log('🔍 Token scopes:', payload.scope);
+                    }
+                } catch (e) {
+                    console.log('ℹ️ Could not decode token (normal for opaque tokens)');
+                }
+            } else {
+                console.warn('⚠️ No access token in credential!');
+            }
+
         } catch (err: any) {
             console.error('Sign in error:', err);
 
@@ -121,6 +163,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         signInWithGoogle,
         signOut,
         error,
+        googleAccessToken,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

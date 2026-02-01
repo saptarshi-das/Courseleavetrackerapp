@@ -39,7 +39,11 @@ setTimeout(() => {
 
 // Configure Google Provider
 export const googleProvider = new GoogleAuthProvider();
+// Add Calendar API scope - MUST be before signIn
+googleProvider.addScope('https://www.googleapis.com/auth/calendar.readonly');
+// Request access_type offline to get refresh token
 googleProvider.setCustomParameters({
-    prompt: 'select_account',
+    prompt: 'consent', // Force consent screen to show even if previously approved
+    access_type: 'offline', // Get refresh token
     hd: 'iimranchi.ac.in' // Restrict to specific domain
 });

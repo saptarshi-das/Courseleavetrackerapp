@@ -1,5 +1,8 @@
 import { useAuth } from '../contexts/AuthContext';
-import { User, LogOut, Info, Sun, Moon } from 'lucide-react';
+import { User, LogOut, Info, Sun, Moon, Calendar, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { getUserCalendars, Calendar as CalendarType } from '../services/calendar';
+import { getUserPreferences, saveUserPreferences } from '../services/preferences';
 
 interface SettingsPageProps {
     isDark: boolean;
@@ -7,7 +10,115 @@ interface SettingsPageProps {
 }
 
 export function SettingsPage({ isDark, onToggleTheme }: SettingsPageProps) {
-    const { user, signOut } = useAuth();
+    const { user, googleAccessToken, signOut } = useAuth();
+    const [calendars, setCalendars] = useState<CalendarType[]>([]);
+    const [selectedCalendarId, setSelectedCalendarId] = useState<string>('');
+    const [loadingCalendars, setLoadingCalendars] = useState(true);
+    const [savingPreference, setSavingPreference] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [lastFetchTime, setLastFetchTime] = useState<string | null>(null);
+
+
+    // Load calendars from cache or Google API
+    const loadData = async (forceRefresh = false) => {
+        if (!user || !googleAccessToken) return;
+
+        try {
+            setLoadingCalendars(true);
+            setError(null);
+
+            // Get saved preferences first (includes cached calendars)
+            const preferences = await getUserPreferences(user.uid);
+
+            let userCalendars: CalendarType[];
+
+            // Only fetch from API if:
+            // 1. No cache exists (first time), OR
+            // 2. User explicitly clicked Refresh button
+            if (forceRefresh || !preferences?.calendars || preferences.calendars.length === 0) {
+                // Fetch from Google Calendar API
+                const reason = forceRefresh ? 'Manual refresh' : 'No cached calendars found';
+                console.log(`🔄 ${reason} - fetching from Google Calendar API`);
+                const fetchedCalendars = await getUserCalendars(googleAccessToken);
+                userCalendars = fetchedCalendars;
+
+                const fetchTime = new Date().toISOString();
+                setLastFetchTime(fetchTime);
+
+                // Save to cache
+                await saveUserPreferences(user.uid, {
+                    calendars: fetchedCalendars.map(cal => ({
+                        id: cal.id,
+                        name: cal.summary
+                    })),
+                    calendarsLastFetched: fetchTime
+                });
+            } else {
+                // Use cached calendars (no expiration - calendar list rarely changes!)
+                console.log('📦 Using cached calendars (events load dynamically in iframe)');
+                userCalendars = preferences.calendars.map(cal => ({
+                    id: cal.id,
+                    summary: cal.name,
+                    backgroundColor: '#4285f4',
+                    foregroundColor: '#ffffff',
+                    primary: cal.id === user.email
+                }));
+                setLastFetchTime(preferences.calendarsLastFetched || null);
+            }
+
+            setCalendars(userCalendars);
+
+            // Set selected calendar
+            if (preferences?.selectedCalendarId) {
+                setSelectedCalendarId(preferences.selectedCalendarId);
+            } else {
+                // Default to primary calendar
+                const primaryCalendar = userCalendars.find(cal => cal.primary);
+                const defaultId = primaryCalendar?.id || userCalendars[0]?.id || user.email!;
+                setSelectedCalendarId(defaultId);
+
+                // Save default selection
+                await saveUserPreferences(user.uid, {
+                    selectedCalendarId: defaultId
+                });
+            }
+        } catch (error: any) {
+            console.error('Error loading calendars:', error);
+            setError(error.message || 'Failed to load calendars');
+        } finally {
+            setLoadingCalendars(false);
+            setRefreshing(false);
+        }
+    };
+
+    // Load calendars on mount
+    useEffect(() => {
+        loadData();
+    }, [user, googleAccessToken]);
+
+
+    const handleCalendarChange = async (calendarId: string) => {
+        if (!user) return;
+
+        try {
+            setSavingPreference(true);
+            setSelectedCalendarId(calendarId);
+            await saveUserPreferences(user.uid, {
+                selectedCalendarId: calendarId
+            });
+        } catch (error) {
+            console.error('Error saving calendar preference:', error);
+        } finally {
+            setSavingPreference(false);
+        }
+    };
+
+    const handleRefreshCalendars = async () => {
+        if (!user || !googleAccessToken) return;
+        setRefreshing(true);
+        await loadData(true); // Force refresh
+    };
 
     const handleSignOut = async () => {
         try {
@@ -90,6 +201,90 @@ export function SettingsPage({ isDark, onToggleTheme }: SettingsPageProps) {
                         {isDark ? <Sun size={24} /> : <Moon size={24} />}
                     </button>
                 </div>
+            </div>
+
+            {/* Calendar Selection Card */}
+            <div
+                className={`rounded-2xl p-6 shadow-lg ${isDark
+                    ? 'bg-gray-800 border border-gray-700'
+                    : 'bg-white border border-gray-200'
+                    }`}
+            >
+                <div className="flex items-center gap-3 mb-4">
+                    <Calendar className={`w-5 h-5 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                    <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        Calendar Display
+                    </h3>
+                </div>
+                <p className={`text-sm mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Choose which calendar to display in the Calendar page
+                </p>
+
+                {!googleAccessToken ? (
+                    <div className={`text-sm ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`}>
+                        ⚠️ Please sign out and sign in again to grant calendar access.
+                    </div>
+                ) : loadingCalendars ? (
+                    <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                        Loading your calendars...
+                    </div>
+                ) : error ? (
+                    <div className={`text-sm ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                        ❌ {error}
+                        <br />
+                        <span className="text-xs">Please sign out and sign in again.</span>
+                    </div>
+                ) : calendars.length === 0 ? (
+                    <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        No calendars found in your Google account.
+                    </div>
+                ) : (
+                    <>
+                        <div className="relative">
+                            <select
+                                value={selectedCalendarId}
+                                onChange={(e) => handleCalendarChange(e.target.value)}
+                                disabled={savingPreference}
+                                className={`w-full px-4 py-3 rounded-lg border-2 transition-all cursor-pointer ${isDark
+                                    ? 'bg-gray-700 border-gray-600 text-white hover:border-indigo-500 focus:border-indigo-500'
+                                    : 'bg-white border-gray-300 text-gray-900 hover:border-indigo-500 focus:border-indigo-500'
+                                    } ${savingPreference ? 'opacity-50 cursor-wait' : ''}`}
+                                style={{ outline: 'none' }}
+                            >
+                                {calendars.map((calendar) => (
+                                    <option key={calendar.id} value={calendar.id}>
+                                        {calendar.summary}{calendar.primary ? ' (Primary)' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            {savingPreference && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex items-center justify-between mt-3">
+                            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                                Found {calendars.length} calendar{calendars.length !== 1 ? 's' : ''}
+                                {lastFetchTime && (
+                                    <> • Last updated: {new Date(lastFetchTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</>
+                                )}
+                            </p>
+                            <button
+                                onClick={handleRefreshCalendars}
+                                disabled={refreshing}
+                                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${isDark
+                                    ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                    } ${refreshing ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+                            >
+                                <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
+                                {refreshing ? 'Refreshing...' : 'Refresh'}
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* App Info Card */}

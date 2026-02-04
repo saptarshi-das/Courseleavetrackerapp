@@ -1,8 +1,7 @@
-const CACHE_NAME = 'margin-app-v2'; // Updated for database implementation
+const CACHE_NAME = 'margin-app-v3'; // Updated for performance optimizations
 const urlsToCache = [
   '/'
-  // Vite handles bundling, so we'll use a network-first strategy
-  // rather than pre-caching specific asset files
+  // Static assets will be cached as they're requested (cache-first strategy)
 ];
 
 self.addEventListener('install', (event) => {
@@ -16,6 +15,13 @@ self.addEventListener('install', (event) => {
         console.log('Cache failed:', error);
       })
   );
+});
+
+// Listen for SKIP_WAITING message from update prompt
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
@@ -34,22 +40,40 @@ self.addEventListener('fetch', (event) => {
     return; // Let Firestore handle its own caching
   }
 
-  // Network-first strategy: try network, fall back to cache
+  // CACHE-FIRST strategy for static assets (instant loading!)
+  // Serve from cache if available, update cache in background
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Cache successful responses
-        if (response.status === 200) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+    caches.match(event.request)
+      .then((cachedResponse) => {
+        // Return cached version immediately if available
+        if (cachedResponse) {
+          // Update cache in background for next time (stale-while-revalidate)
+          fetch(event.request)
+            .then((response) => {
+              if (response.status === 200) {
+                caches.open(CACHE_NAME).then((cache) => {
+                  cache.put(event.request, response.clone());
+                });
+              }
+            })
+            .catch(() => {
+              // Network failed, but we already returned cached version
+            });
+
+          return cachedResponse; // Return cached response immediately!
         }
-        return response;
-      })
-      .catch(() => {
-        // If network fails, try cache
-        return caches.match(event.request);
+
+        // If not in cache, fetch from network and cache it
+        return fetch(event.request)
+          .then((response) => {
+            if (response.status === 200) {
+              const responseClone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseClone);
+              });
+            }
+            return response;
+          });
       })
   );
 });

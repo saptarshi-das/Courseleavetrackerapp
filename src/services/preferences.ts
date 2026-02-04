@@ -5,6 +5,7 @@ export interface UserPreferences {
     selectedCalendarId?: string;
     calendars?: { id: string; name: string }[];
     calendarsLastFetched?: string; // ISO timestamp of last calendar fetch
+    calendarView?: 'month' | 'week'; // User's preferred calendar view
     theme?: 'light' | 'dark';
     userId: string;
 }

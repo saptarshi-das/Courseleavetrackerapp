@@ -37,8 +37,10 @@ When users sign in with Google, the app now requests calendar read permission:
 
 #### Selecting Active Calendar
 - Use the dropdown in Settings to choose which calendar to display
-- Selection is saved automatically to Firestore
-- The Calendar page will immediately update to show the selected calendar
+- **Selection is saved automatically to Firestore in real-time**
+- **The Calendar page updates instantly without needing a refresh!**
+- **Your selection persists across login sessions and devices**
+- The calendar view preference (Month/Week) is also saved automatically
 
 ### 3. Calendar Display (Calendar Page)
 

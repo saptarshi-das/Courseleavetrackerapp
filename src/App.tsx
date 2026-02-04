@@ -30,6 +30,7 @@ function AppContent() {
   const [selectedTerm, setSelectedTerm] = useState<number | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
+  const [migrationTermNumber, setMigrationTermNumber] = useState('1');
   const dbServiceRef = useRef<DatabaseService | null>(null);
 
   const [isDark, setIsDark] = useState(() => {
@@ -175,25 +176,35 @@ function AppContent() {
   };
 
   const migrateLegacyCourses = () => {
-    // Assign termNumber 0 to all courses without a termNumber
+    const selectedTermNum = parseInt(migrationTermNumber);
+
+    // Assign selected term number to all courses without a termNumber
     const updatedCourses = courses.map(course =>
-      course.termNumber === undefined ? { ...course, termNumber: 0 } : course
+      course.termNumber === undefined ? { ...course, termNumber: selectedTermNum } : course
     );
     setCourses(updatedCourses);
 
-    // Create a "Legacy" term (term 0)
-    const legacyTerm: Term = {
-      id: 'legacy-' + Date.now(),
-      termNumber: 0,
-      startMonth: 0,
-      startWeek: 0,
-      endMonth: 11,
-      endWeek: 4,
-      createdAt: Date.now(),
-    };
-    const updatedTerms = [legacyTerm, ...terms];
-    setTerms(updatedTerms);
-    setSelectedTerm(0);
+    // Check if the term already exists
+    const termExists = terms.some(t => t.termNumber === selectedTermNum);
+    let updatedTerms = [...terms];
+
+    if (!termExists) {
+      // Create the term with default dates (current month, whole week range)
+      const now = new Date();
+      const newTerm: Term = {
+        id: 'term-' + Date.now(),
+        termNumber: selectedTermNum,
+        startMonth: now.getMonth(),
+        startWeek: 0,
+        endMonth: (now.getMonth() + 3) % 12, // Default 3 months duration
+        endWeek: 4,
+        createdAt: Date.now(),
+      };
+      updatedTerms = [...terms, newTerm].sort((a, b) => a.termNumber - b.termNumber);
+      setTerms(updatedTerms);
+    }
+
+    setSelectedTerm(selectedTermNum);
 
     // Save to database
     if (dbServiceRef.current) {
@@ -304,18 +315,39 @@ function AppContent() {
                 <div className={`rounded-2xl shadow-md p-5 mb-4 border-2 border-yellow-500 ${isDark ? 'bg-gray-800' : 'bg-white'
                   }`}>
                   <h3 className={`mb-2 text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                    Welcome to Terms!
+                    Welcome to Terms! 🎓
                   </h3>
                   <p className={`text-sm mb-4 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                     We've added term management! Your existing courses need to be organized.
-                    You can add them to a "Legacy" term (Term 0) or start fresh by adding new terms below.
+                    Select which term to assign them to, or add new terms first.
                   </p>
+
+                  <div className="mb-4">
+                    <label className={`block text-sm mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Assign existing courses to:
+                    </label>
+                    <select
+                      value={migrationTermNumber}
+                      onChange={(e) => setMigrationTermNumber(e.target.value)}
+                      className={`w-full px-4 py-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#e50914] ${isDark
+                          ? 'bg-gray-700 border-gray-600 text-white'
+                          : 'bg-white border-gray-200 text-gray-900'
+                        }`}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                        <option key={num} value={num}>
+                          Term {num}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="flex gap-3">
                     <button
                       onClick={migrateLegacyCourses}
                       className="flex-1 bg-[#e50914] hover:bg-[#b8070f] text-white px-4 py-2.5 rounded-xl transition-colors"
                     >
-                      Keep My Courses (Add to Term 0)
+                      Assign to Term {migrationTermNumber}
                     </button>
                     <button
                       onClick={() => setShowMigrationPrompt(false)}
@@ -356,8 +388,8 @@ function AppContent() {
                     value={selectedTerm ?? ''}
                     onChange={(e) => setSelectedTerm(parseInt(e.target.value))}
                     className={`w-full px-4 py-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#e50914] ${isDark
-                        ? 'bg-gray-700 border-gray-600 text-white'
-                        : 'bg-white border-gray-200 text-gray-900'
+                      ? 'bg-gray-700 border-gray-600 text-white'
+                      : 'bg-white border-gray-200 text-gray-900'
                       }`}
                   >
                     {terms.map((term) => (

@@ -1,5 +1,14 @@
 # Firebase Environment Variables
 .env
 .env.local
+
+# Build output (contains bundled env variables)
+dist/
+dist-ssr/
+*.local
+
+# Dependencies
 node_modules/
+
+# OS files
 .DS_Store

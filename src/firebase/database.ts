@@ -19,7 +19,18 @@ export interface Course {
     shortName?: string;
     leaves: number;
     maxLeaves: number;
+    termNumber?: number; // Optional for backward compatibility
     updatedAt?: number;
+}
+
+export interface Term {
+    id: string;
+    termNumber: number;
+    startMonth: number;
+    startWeek: number;
+    endMonth: number;
+    endWeek: number;
+    createdAt: number;
 }
 
 const COURSES_COLLECTION = 'userCourses';
@@ -133,6 +144,7 @@ export class DatabaseService {
 
             if (docSnap.exists()) {
                 const serverCourses = docSnap.data().courses || [];
+                const serverTerms = docSnap.data().terms || [];
                 const serverTimestamp = docSnap.data().updatedAt?.toMillis() || 0;
                 const localTimestamp = parseInt(localStorage.getItem(LAST_SYNC_KEY) || '0');
 
@@ -142,6 +154,7 @@ export class DatabaseService {
                         console.log('📡 Server has newer data - updating UI');
                     }
                     this.saveLocalCourses(serverCourses);
+                    this.saveLocalTerms(serverTerms);
                     onCoursesUpdate(serverCourses);
                 } else {
                     // Local data is newer, sync to server
@@ -222,6 +235,71 @@ export class DatabaseService {
         } catch (error) {
             console.error('⚠️ Failed to save to server (saved locally):', error);
             // Data is already in localStorage, so app continues to work
+        }
+    }
+
+    /**
+     * Get terms from localStorage
+     */
+    private getLocalTerms(): Term[] {
+        try {
+            const saved = localStorage.getItem('terms');
+            return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.error('Error reading terms from localStorage:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Save terms to localStorage
+     */
+    private saveLocalTerms(terms: Term[]) {
+        try {
+            localStorage.setItem('terms', JSON.stringify(terms));
+        } catch (error) {
+            console.error('Error saving terms to localStorage:', error);
+        }
+    }
+
+    /**
+     * Get terms (synchronous from local storage)
+     */
+    getTerms(): Term[] {
+        return this.getLocalTerms();
+    }
+
+    /**
+     * Save terms (network-first, with offline fallback)
+     */
+    async saveTerms(terms: Term[]): Promise<void> {
+        // Always save to localStorage first
+        this.saveLocalTerms(terms);
+
+        // Try to save to server if online
+        if (!this.isOnline) {
+            if (IS_DEV) {
+                console.log('📴 Offline - terms saved to local storage only');
+            }
+            return;
+        }
+
+        try {
+            const docRef = this.getUserDocRef();
+            const docSnap = await getDoc(docRef);
+            const existingData = docSnap.exists() ? docSnap.data() : {};
+
+            await setDoc(docRef, {
+                ...existingData,
+                terms,
+                updatedAt: Timestamp.now(),
+                userId: this.userId
+            });
+            if (IS_DEV) {
+                console.log('✅ Terms saved to server and local storage');
+            }
+        } catch (error) {
+            console.error('⚠️ Failed to save terms to server (saved locally):', error);
         }
     }
 

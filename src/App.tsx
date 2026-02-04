@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { CourseList } from './components/CourseList';
 import { AddCourseButton } from './components/AddCourseButton';
+import { AddTermButton } from './components/AddTermButton';
 import { Dashboard } from './components/Dashboard';
 import { PWAPrompt } from './components/PWAPrompt';
 import { UpdatePrompt } from './components/UpdatePrompt';
@@ -11,7 +12,7 @@ import { Navigation } from './components/Navigation';
 import { SettingsPage } from './components/SettingsPage';
 import { CalendarPage } from './components/CalendarPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { DatabaseService, createDatabaseService, Course as DBCourse } from './firebase/database';
+import { DatabaseService, createDatabaseService, Course as DBCourse, Term } from './firebase/database';
 
 export interface Course {
   id: string;
@@ -19,12 +20,16 @@ export interface Course {
   shortName?: string;
   leaves: number;
   maxLeaves: number;
+  termNumber?: number;
 }
 
 function AppContent() {
   const { user, loading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [terms, setTerms] = useState<Term[]>([]);
+  const [selectedTerm, setSelectedTerm] = useState<number | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showMigrationPrompt, setShowMigrationPrompt] = useState(false);
   const dbServiceRef = useRef<DatabaseService | null>(null);
 
   const [isDark, setIsDark] = useState(() => {
@@ -44,12 +49,28 @@ function AppContent() {
       // Database syncs in background and updates UI if server has newer data
       const cachedCourses = dbService.initialize(setCourses);
       setCourses(cachedCourses);
+
+      // Load terms
+      const cachedTerms = dbService.getTerms();
+      setTerms(cachedTerms);
+
+      // Auto-select latest term or show migration prompt
+      if (cachedTerms.length > 0) {
+        const latestTerm = Math.max(...cachedTerms.map(t => t.termNumber));
+        setSelectedTerm(latestTerm);
+      } else if (cachedCourses.length > 0) {
+        // User has courses but no terms - show migration prompt
+        setShowMigrationPrompt(true);
+      }
+
       setIsInitialized(true); // UI shows immediately!
     } else if (!user && dbServiceRef.current) {
       // Clean up when user logs out
       dbServiceRef.current.cleanup();
       dbServiceRef.current = null;
       setCourses([]);
+      setTerms([]);
+      setSelectedTerm(null);
       setIsInitialized(false);
     }
 
@@ -91,13 +112,14 @@ function AppContent() {
     }
   }, []);
 
-  const addCourse = (name: string, shortName: string, maxLeaves: number) => {
+  const addCourse = (name: string, shortName: string, maxLeaves: number, termNumber?: number) => {
     const newCourse: Course = {
       id: Date.now().toString(),
       name,
       shortName: shortName.trim() || undefined,
       leaves: 0,
       maxLeaves,
+      termNumber: termNumber ?? selectedTerm ?? undefined,
     };
     const updatedCourses = [...courses, newCourse];
     setCourses(updatedCourses);
@@ -106,6 +128,80 @@ function AppContent() {
     if (dbServiceRef.current) {
       dbServiceRef.current.saveCourses(updatedCourses);
     }
+  };
+
+  const addTerm = (termNumber: number, startMonth: number, startWeek: number, endMonth: number, endWeek: number) => {
+    const newTerm: Term = {
+      id: Date.now().toString(),
+      termNumber,
+      startMonth,
+      startWeek,
+      endMonth,
+      endWeek,
+      createdAt: Date.now(),
+    };
+    const updatedTerms = [...terms, newTerm].sort((a, b) => a.termNumber - b.termNumber);
+    setTerms(updatedTerms);
+    setSelectedTerm(termNumber);
+
+    // Save to database
+    if (dbServiceRef.current) {
+      dbServiceRef.current.saveTerms(updatedTerms);
+    }
+
+    // Close migration prompt if open
+    setShowMigrationPrompt(false);
+  };
+
+  const deleteTerm = (termNumber: number) => {
+    // Delete the term
+    const updatedTerms = terms.filter(t => t.termNumber !== termNumber);
+    setTerms(updatedTerms);
+
+    // Delete all courses in that term
+    const updatedCourses = courses.filter(c => c.termNumber !== termNumber);
+    setCourses(updatedCourses);
+
+    // Update selected term
+    if (selectedTerm === termNumber) {
+      setSelectedTerm(updatedTerms.length > 0 ? Math.max(...updatedTerms.map(t => t.termNumber)) : null);
+    }
+
+    // Save to database
+    if (dbServiceRef.current) {
+      dbServiceRef.current.saveTerms(updatedTerms);
+      dbServiceRef.current.saveCourses(updatedCourses);
+    }
+  };
+
+  const migrateLegacyCourses = () => {
+    // Assign termNumber 0 to all courses without a termNumber
+    const updatedCourses = courses.map(course =>
+      course.termNumber === undefined ? { ...course, termNumber: 0 } : course
+    );
+    setCourses(updatedCourses);
+
+    // Create a "Legacy" term (term 0)
+    const legacyTerm: Term = {
+      id: 'legacy-' + Date.now(),
+      termNumber: 0,
+      startMonth: 0,
+      startWeek: 0,
+      endMonth: 11,
+      endWeek: 4,
+      createdAt: Date.now(),
+    };
+    const updatedTerms = [legacyTerm, ...terms];
+    setTerms(updatedTerms);
+    setSelectedTerm(0);
+
+    // Save to database
+    if (dbServiceRef.current) {
+      dbServiceRef.current.saveCourses(updatedCourses);
+      dbServiceRef.current.saveTerms(updatedTerms);
+    }
+
+    setShowMigrationPrompt(false);
   };
 
   const updateLeaves = (id: string, delta: number) => {
@@ -203,6 +299,37 @@ function AppContent() {
 
           {activeSection === 'home' ? (
             <>
+              {/* Migration Prompt for Legacy Users */}
+              {showMigrationPrompt && (
+                <div className={`rounded-2xl shadow-md p-5 mb-4 border-2 border-yellow-500 ${isDark ? 'bg-gray-800' : 'bg-white'
+                  }`}>
+                  <h3 className={`mb-2 text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                    Welcome to Terms!
+                  </h3>
+                  <p className={`text-sm mb-4 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                    We've added term management! Your existing courses need to be organized.
+                    You can add them to a "Legacy" term (Term 0) or start fresh by adding new terms below.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={migrateLegacyCourses}
+                      className="flex-1 bg-[#e50914] hover:bg-[#b8070f] text-white px-4 py-2.5 rounded-xl transition-colors"
+                    >
+                      Keep My Courses (Add to Term 0)
+                    </button>
+                    <button
+                      onClick={() => setShowMigrationPrompt(false)}
+                      className={`flex-1 px-4 py-2.5 rounded-xl transition-colors ${isDark
+                          ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                        }`}
+                    >
+                      I'll Add Terms First
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Greeting */}
               <div className="mb-2">
                 <h2
@@ -218,15 +345,57 @@ function AppContent() {
                 </h2>
               </div>
 
-              {/* Dashboard */}
-              <Dashboard courses={courses} isDark={isDark} />
+              {/* Term Selector */}
+              {terms.length > 0 && (
+                <div className={`rounded-2xl shadow-md p-4 mb-4 ${isDark ? 'bg-gray-800' : 'bg-white'
+                  }`}>
+                  <label className={`block text-sm mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Select Term
+                  </label>
+                  <select
+                    value={selectedTerm ?? ''}
+                    onChange={(e) => setSelectedTerm(parseInt(e.target.value))}
+                    className={`w-full px-4 py-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#e50914] ${isDark
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-200 text-gray-900'
+                      }`}
+                  >
+                    {terms.map((term) => (
+                      <option key={term.id} value={term.termNumber}>
+                        {term.termNumber === 0 ? 'Term 0 (Legacy)' : `Term ${term.termNumber}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-              {/* Add Course Button */}
-              <AddCourseButton onAddCourse={addCourse} isDark={isDark} />
+              {/* Dashboard - Show courses from selected term */}
+              <Dashboard
+                courses={selectedTerm !== null
+                  ? courses.filter(c => c.termNumber === selectedTerm)
+                  : courses.filter(c => c.termNumber === undefined)
+                }
+                isDark={isDark}
+              />
 
-              {/* Course List */}
+              {/* Add Term and Add Course Buttons */}
+              <div className="space-y-3">
+                <AddTermButton
+                  onAddTerm={addTerm}
+                  isDark={isDark}
+                  existingTerms={terms.map(t => t.termNumber)}
+                />
+                {selectedTerm !== null && (
+                  <AddCourseButton onAddCourse={addCourse} isDark={isDark} />
+                )}
+              </div>
+
+              {/* Course List - Show courses from selected term */}
               <CourseList
-                courses={courses}
+                courses={selectedTerm !== null
+                  ? courses.filter(c => c.termNumber === selectedTerm)
+                  : courses.filter(c => c.termNumber === undefined)
+                }
                 onUpdateLeaves={updateLeaves}
                 onDeleteCourse={deleteCourse}
                 isDark={isDark}

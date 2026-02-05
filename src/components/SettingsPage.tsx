@@ -221,8 +221,26 @@ export function SettingsPage({ isDark, onToggleTheme }: SettingsPageProps) {
                 </p>
 
                 {!googleAccessToken ? (
-                    <div className={`text-sm ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`}>
-                        ⚠️ Please sign out and sign in again to grant calendar access.
+                    <div className="space-y-3">
+                        <div className={`text-sm ${isDark ? 'text-yellow-400' : 'text-yellow-600'} bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3`}>
+                            <p className="font-medium mb-1">⚠️ Calendar Access Required</p>
+                            <p className="text-xs opacity-90 mb-3">
+                                Your Google Calendar access has expired or hasn't been granted yet.
+                                Click below to re-authorize calendar access.
+                            </p>
+                            <button
+                                onClick={handleSignOut}
+                                className={`w-full px-4 py-2 rounded-lg font-medium text-sm transition-all ${isDark
+                                        ? 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30'
+                                        : 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-700 border border-yellow-500/30'
+                                    }`}
+                            >
+                                Re-authorize Calendar Access
+                            </button>
+                            <p className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
+                                You'll be asked to sign in again with Google to grant calendar permissions.
+                            </p>
+                        </div>
                     </div>
                 ) : loadingCalendars ? (
                     <div className={`flex items-center gap-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>

@@ -119,18 +119,62 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return () => unsubscribe();
     }, []);
 
-    // Load stored access token from localStorage
+    // Get fresh access token from Firebase Auth
     useEffect(() => {
-        if (user) {
-            const storedToken = localStorage.getItem('googleAccessToken');
-            if (storedToken) {
-                setGoogleAccessToken(storedToken);
+        const getAccessToken = async () => {
+            if (user) {
+                try {
+                    // Get a fresh ID token from Firebase Auth
+                    // This token is automatically refreshed by Firebase
+                    const idToken = await user.getIdToken(true); // true = force refresh
+
+                    // Try to get the Google access token from the user's provider data
+                    // This requires re-authentication to get a fresh Google OAuth token
+                    const storedToken = localStorage.getItem('googleAccessToken');
+
+                    if (storedToken) {
+                        // Verify if token is still valid by making a test API call
+                        try {
+                            const testResponse = await fetch(
+                                'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=1',
+                                {
+                                    headers: {
+                                        'Authorization': `Bearer ${storedToken}`,
+                                    },
+                                }
+                            );
+
+                            if (testResponse.ok) {
+                                // Token is still valid
+                                console.log('✅ Existing access token is valid');
+                                setGoogleAccessToken(storedToken);
+                            } else {
+                                // Token expired or invalid
+                                console.log('⚠️ Access token expired or invalid');
+                                setGoogleAccessToken(null);
+                                localStorage.removeItem('googleAccessToken');
+                            }
+                        } catch (error) {
+                            console.error('Error validating token:', error);
+                            setGoogleAccessToken(null);
+                            localStorage.removeItem('googleAccessToken');
+                        }
+                    } else {
+                        // No stored token
+                        setGoogleAccessToken(null);
+                    }
+                } catch (error) {
+                    console.error('Error getting access token:', error);
+                    setGoogleAccessToken(null);
+                }
+            } else {
+                // Clear token when user signs out
+                setGoogleAccessToken(null);
+                localStorage.removeItem('googleAccessToken');
             }
-        } else {
-            // Clear token when user signs out
-            setGoogleAccessToken(null);
-            localStorage.removeItem('googleAccessToken');
-        }
+        };
+
+        getAccessToken();
     }, [user]);
 
     const signInWithGoogle = async () => {

@@ -26,8 +26,7 @@ export interface Course {
 export interface Term {
     id: string;
     termNumber: number;
-    startMonth: number;
-    startWeek: number;
+    startDate: string; // ISO date string
     endMonth: number;
     endWeek: number;
     createdAt: number;

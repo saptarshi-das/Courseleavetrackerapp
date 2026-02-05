@@ -3,6 +3,7 @@ import { Moon, Sun } from 'lucide-react';
 import { CourseList } from './components/CourseList';
 import { AddCourseButton } from './components/AddCourseButton';
 import { AddTermButton } from './components/AddTermButton';
+import { TermCard } from './components/TermCard';
 import { Dashboard } from './components/Dashboard';
 import { PWAPrompt } from './components/PWAPrompt';
 import { UpdatePrompt } from './components/UpdatePrompt';
@@ -13,6 +14,8 @@ import { SettingsPage } from './components/SettingsPage';
 import { CalendarPage } from './components/CalendarPage';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DatabaseService, createDatabaseService, Course as DBCourse, Term } from './firebase/database';
+import { getUserPreferences } from './services/preferences';
+import { getCalendarEvents, extractUniqueCourseNames } from './services/calendarEvents';
 
 export interface Course {
   id: string;
@@ -39,6 +42,8 @@ function AppContent() {
   });
 
   const [activeSection, setActiveSection] = useState<'home' | 'calendar' | 'settings'>('home');
+  const [showPastTerms, setShowPastTerms] = useState(false);
+  const [calendarCourseNames, setCalendarCourseNames] = useState<string[]>([]);
 
   // Initialize database service when user logs in
   useEffect(() => {
@@ -99,6 +104,40 @@ function AppContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Fetch calendar events and extract course names
+  useEffect(() => {
+    async function fetchCalendarCourseNames() {
+      if (!user) return;
+
+      try {
+        // Get user preferences to find selected calendar
+        const preferences = await getUserPreferences(user.uid);
+        if (!preferences?.selectedCalendarId) {
+          console.log('No selected calendar found');
+          return;
+        }
+
+        // Get access token
+        const token = await user.getIdToken();
+
+        // Fetch calendar events
+        const events = await getCalendarEvents(token, preferences.selectedCalendarId);
+
+        // Extract unique course names
+        const courseNames = extractUniqueCourseNames(events);
+        setCalendarCourseNames(courseNames);
+
+        console.log('📚 Extracted course names from calendar:', courseNames);
+      } catch (error) {
+        console.error('Error fetching calendar course names:', error);
+      }
+    }
+
+    if (user) {
+      fetchCalendarCourseNames();
+    }
+  }, [user]);
+
   // Register service worker
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -131,17 +170,16 @@ function AppContent() {
     }
   };
 
-  const addTerm = (termNumber: number, startMonth: number, startWeek: number, endMonth: number, endWeek: number) => {
+  const addTerm = (termNumber: number, startDate: string, endMonth: number, endWeek: number) => {
     const newTerm: Term = {
       id: Date.now().toString(),
       termNumber,
-      startMonth,
-      startWeek,
+      startDate,
       endMonth,
       endWeek,
       createdAt: Date.now(),
     };
-    const updatedTerms = [...terms, newTerm].sort((a, b) => a.termNumber - b.termNumber);
+    const updatedTerms = [...terms, newTerm].sort((a, b) => b.termNumber - a.termNumber);
     setTerms(updatedTerms);
     setSelectedTerm(termNumber);
 
@@ -175,6 +213,20 @@ function AppContent() {
     }
   };
 
+  const editTerm = (termNumber: number, startDate: string, endMonth: number, endWeek: number) => {
+    const updatedTerms = terms.map(t =>
+      t.termNumber === termNumber
+        ? { ...t, startDate, endMonth, endWeek }
+        : t
+    );
+    setTerms(updatedTerms);
+
+    // Save to database
+    if (dbServiceRef.current) {
+      dbServiceRef.current.saveTerms(updatedTerms);
+    }
+  };
+
   const migrateLegacyCourses = () => {
     const selectedTermNum = parseInt(migrationTermNumber);
 
@@ -189,18 +241,20 @@ function AppContent() {
     let updatedTerms = [...terms];
 
     if (!termExists) {
-      // Create the term with default dates (current month, whole week range)
+      // Create the term with default dates
       const now = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 3); // Default 3 months duration
+
       const newTerm: Term = {
         id: 'term-' + Date.now(),
         termNumber: selectedTermNum,
-        startMonth: now.getMonth(),
-        startWeek: 0,
-        endMonth: (now.getMonth() + 3) % 12, // Default 3 months duration
-        endWeek: 4,
+        startDate: now.toISOString().split('T')[0], // YYYY-MM-DD format
+        endMonth: endDate.getMonth(),
+        endWeek: 3, // 4th week (0-indexed)
         createdAt: Date.now(),
       };
-      updatedTerms = [...terms, newTerm].sort((a, b) => a.termNumber - b.termNumber);
+      updatedTerms = [...terms, newTerm].sort((a, b) => b.termNumber - a.termNumber);
       setTerms(updatedTerms);
     }
 
@@ -330,8 +384,8 @@ function AppContent() {
                       value={migrationTermNumber}
                       onChange={(e) => setMigrationTermNumber(e.target.value)}
                       className={`w-full px-4 py-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#e50914] ${isDark
-                          ? 'bg-gray-700 border-gray-600 text-white'
-                          : 'bg-white border-gray-200 text-gray-900'
+                        ? 'bg-gray-700 border-gray-600 text-white'
+                        : 'bg-white border-gray-200 text-gray-900'
                         }`}
                     >
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
@@ -352,8 +406,8 @@ function AppContent() {
                     <button
                       onClick={() => setShowMigrationPrompt(false)}
                       className={`flex-1 px-4 py-2.5 rounded-xl transition-colors ${isDark
-                          ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                        ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
                         }`}
                     >
                       I'll Add Terms First
@@ -377,30 +431,6 @@ function AppContent() {
                 </h2>
               </div>
 
-              {/* Term Selector */}
-              {terms.length > 0 && (
-                <div className={`rounded-2xl shadow-md p-4 mb-4 ${isDark ? 'bg-gray-800' : 'bg-white'
-                  }`}>
-                  <label className={`block text-sm mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Select Term
-                  </label>
-                  <select
-                    value={selectedTerm ?? ''}
-                    onChange={(e) => setSelectedTerm(parseInt(e.target.value))}
-                    className={`w-full px-4 py-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#e50914] ${isDark
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-white border-gray-200 text-gray-900'
-                      }`}
-                  >
-                    {terms.map((term) => (
-                      <option key={term.id} value={term.termNumber}>
-                        {term.termNumber === 0 ? 'Term 0 (Legacy)' : `Term ${term.termNumber}`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
               {/* Dashboard - Show courses from selected term */}
               <Dashboard
                 courses={selectedTerm !== null
@@ -410,28 +440,76 @@ function AppContent() {
                 isDark={isDark}
               />
 
-              {/* Add Term and Add Course Buttons */}
-              <div className="space-y-3">
+
+
+              {/* View Past Terms and Add Term Buttons */}
+              <div className="flex items-center gap-3 justify-end">
+                {/* View Past Terms Button - Left of Add Term */}
+                {terms.length > 1 && (
+                  <button
+                    onClick={() => setShowPastTerms(!showPastTerms)}
+                    className={`px-4 py-2.5 rounded-xl transition-all text-sm font-medium ${isDark
+                      ? 'hover:bg-gray-700 text-gray-300'
+                      : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                  >
+                    {showPastTerms ? 'Hide' : 'View'} Past Terms
+                  </button>
+                )}
+
+                {/* Add Term Button - Right side */}
                 <AddTermButton
                   onAddTerm={addTerm}
                   isDark={isDark}
                   existingTerms={terms.map(t => t.termNumber)}
                 />
-                {selectedTerm !== null && (
-                  <AddCourseButton onAddCourse={addCourse} isDark={isDark} />
-                )}
               </div>
 
-              {/* Course List - Show courses from selected term */}
-              <CourseList
-                courses={selectedTerm !== null
-                  ? courses.filter(c => c.termNumber === selectedTerm)
-                  : courses.filter(c => c.termNumber === undefined)
-                }
-                onUpdateLeaves={updateLeaves}
-                onDeleteCourse={deleteCourse}
-                isDark={isDark}
-              />
+
+              {/* Latest Term Card - Always show */}
+              {terms.length > 0 && selectedTerm !== null && (
+                <>
+                  <h4 className={`text-sm font-medium mb-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Current Term
+                  </h4>
+                  <TermCard
+                    term={terms.find(t => t.termNumber === selectedTerm)!}
+                    courses={courses.filter(c => c.termNumber === selectedTerm)}
+                    isDark={isDark}
+                    onAddCourse={addCourse}
+                    onUpdateLeaves={updateLeaves}
+                    onDeleteCourse={deleteCourse}
+                    onDeleteTerm={deleteTerm}
+                    onEditTerm={editTerm}
+                    calendarCourseNames={calendarCourseNames}
+                  />
+                </>
+              )}
+
+              {/* Past Terms - Show when toggled */}
+              {showPastTerms && terms.length > 1 && (
+                <div className="space-y-3 mt-4">
+                  <h4 className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Past Terms
+                  </h4>
+                  {terms
+                    .filter(t => t.termNumber !== selectedTerm)
+                    .map((term) => (
+                      <TermCard
+                        key={term.id}
+                        term={term}
+                        courses={courses.filter(c => c.termNumber === term.termNumber)}
+                        isDark={isDark}
+                        onAddCourse={addCourse}
+                        onUpdateLeaves={updateLeaves}
+                        onDeleteCourse={deleteCourse}
+                        onDeleteTerm={deleteTerm}
+                        onEditTerm={editTerm}
+                        calendarCourseNames={calendarCourseNames}
+                      />
+                    ))}
+                </div>
+              )}
             </>
           ) : activeSection === 'calendar' ? (
             <CalendarPage isDark={isDark} />

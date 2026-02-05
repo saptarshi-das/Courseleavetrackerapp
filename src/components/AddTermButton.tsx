@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, X, Calendar } from 'lucide-react';
 
 interface AddTermButtonProps {
-    onAddTerm: (termNumber: number, startMonth: number, startWeek: number, endMonth: number, endWeek: number) => void;
+    onAddTerm: (termNumber: number, startDate: string, endMonth: number, endWeek: number) => void;
     isDark: boolean;
     existingTerms: number[];
 }
@@ -12,15 +12,14 @@ const MONTHS = [
     'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-const WEEKS = ['1st Week', '2nd Week', '3rd Week', '4th Week', 'Last Week'];
+const WEEKS = ['1st Week', '2nd Week', '3rd Week', '4th Week'];
 
 export function AddTermButton({ onAddTerm, isDark, existingTerms }: AddTermButtonProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [termNumber, setTermNumber] = useState('1');
-    const [startMonth, setStartMonth] = useState('0');
-    const [startWeek, setStartWeek] = useState('0');
+    const [startDate, setStartDate] = useState('');
     const [endMonth, setEndMonth] = useState('0');
-    const [endWeek, setEndWeek] = useState('4');
+    const [endWeek, setEndWeek] = useState('3');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,20 +30,23 @@ export function AddTermButton({ onAddTerm, isDark, existingTerms }: AddTermButto
             return;
         }
 
+        if (!startDate) {
+            alert('Please select a start date');
+            return;
+        }
+
         onAddTerm(
             term,
-            parseInt(startMonth),
-            parseInt(startWeek),
+            startDate,
             parseInt(endMonth),
             parseInt(endWeek)
         );
 
         // Reset and close
         setTermNumber('1');
-        setStartMonth('0');
-        setStartWeek('0');
+        setStartDate('');
         setEndMonth('0');
-        setEndWeek('4');
+        setEndWeek('3');
         setIsOpen(false);
     };
 
@@ -74,10 +76,9 @@ export function AddTermButton({ onAddTerm, isDark, existingTerms }: AddTermButto
                     onClick={() => {
                         setIsOpen(false);
                         setTermNumber('1');
-                        setStartMonth('0');
-                        setStartWeek('0');
+                        setStartDate('');
                         setEndMonth('0');
-                        setEndWeek('4');
+                        setEndWeek('3');
                     }}
                     className={`p-1 rounded-lg transition-colors ${isDark
                             ? 'hover:bg-gray-700 text-gray-400'
@@ -114,51 +115,19 @@ export function AddTermButton({ onAddTerm, isDark, existingTerms }: AddTermButto
                 </div>
 
                 <div>
-                    <label className={`block text-sm mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <label className={`block text-sm mb-1.5 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                         Start Date *
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className={`block text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                                Month
-                            </label>
-                            <select
-                                value={startMonth}
-                                onChange={(e) => setStartMonth(e.target.value)}
-                                required
-                                className={`w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#e50914] ${isDark
-                                        ? 'bg-gray-700 border-gray-600 text-white'
-                                        : 'bg-white border-gray-200 text-gray-900'
-                                    }`}
-                            >
-                                {MONTHS.map((month, index) => (
-                                    <option key={index} value={index}>
-                                        {month}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className={`block text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                                Week
-                            </label>
-                            <select
-                                value={startWeek}
-                                onChange={(e) => setStartWeek(e.target.value)}
-                                required
-                                className={`w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[#e50914] ${isDark
-                                        ? 'bg-gray-700 border-gray-600 text-white'
-                                        : 'bg-white border-gray-200 text-gray-900'
-                                    }`}
-                            >
-                                {WEEKS.map((week, index) => (
-                                    <option key={index} value={index}>
-                                        {week}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
+                    <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        required
+                        className={`w-full px-4 py-2.5 rounded-xl border focus:outline-none focus:ring-2 focus:ring-[#e50914] ${isDark
+                                ? 'bg-gray-700 border-gray-600 text-white'
+                                : 'bg-white border-gray-200 text-gray-900'
+                            }`}
+                    />
                 </div>
 
                 <div>
@@ -188,7 +157,7 @@ export function AddTermButton({ onAddTerm, isDark, existingTerms }: AddTermButto
                         </div>
                         <div>
                             <label className={`block text-xs mb-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                                Week
+                                Week (1-4)
                             </label>
                             <select
                                 value={endWeek}
@@ -215,10 +184,9 @@ export function AddTermButton({ onAddTerm, isDark, existingTerms }: AddTermButto
                         onClick={() => {
                             setIsOpen(false);
                             setTermNumber('1');
-                            setStartMonth('0');
-                            setStartWeek('0');
+                            setStartDate('');
                             setEndMonth('0');
-                            setEndWeek('4');
+                            setEndWeek('3');
                         }}
                         className={`flex-1 px-4 py-2.5 rounded-xl transition-colors ${isDark
                                 ? 'bg-gray-700 hover:bg-gray-600 text-white'
